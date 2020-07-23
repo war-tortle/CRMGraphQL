@@ -1,4 +1,5 @@
 const Usuario = require('../models/Usuario');
+const Producto = require('../models/Producto');
 const bcryptjs = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 require('dotenv').config({ path: 'variables.env' });
@@ -18,6 +19,25 @@ const resolvers	= {
 			const usuarioId = await jwt.verify(token, process.env.SECRETA)
 
 			return usuarioId
+		},
+		obtenerProductos: async () => {
+			try {
+				const productos = await Producto.find({});
+
+				return	productos;
+			} catch (error) {
+				console.log(error);
+			}
+		},
+		obtenerProducto: async (_, { id } ) => {
+			// Revisar si el producto existe o no
+			const producto = await Producto.findById(id);
+
+			if (!producto) {
+				throw new Error('Producto no encontrado')
+			}
+
+			return producto
 		}
 	},
 	Mutation: {
@@ -44,7 +64,7 @@ const resolvers	= {
 				console.log(error)
 			}
 		},
-		autenticarUsuario: async (_, { input }) => {
+		autenticarUsuario: async (_, { input } ) => {
 
 			const { email, password } = input;
 
@@ -64,6 +84,44 @@ const resolvers	= {
 			return {
 				token: crearToken(existeUsuario, process.env.SECRETA, '24h')
 			}
+		},
+		nuevoProducto: async (_, { input } ) => {
+			try {
+				const producto = new Producto(input);
+
+				// Almacenar en la BBDD
+				const resultado = await producto.save();
+
+				return resultado;
+			} catch (error){
+				console.log(error);
+			}
+		},
+		actualizarProducto: async (_, { id, input } ) => {
+			// Revisar si el producto existe o no
+			let producto = await Producto.findById(id);
+
+			if (!producto) {
+				throw new Error('Producto no encontrado')
+			}
+
+			// Guardarlo en BBDD
+			producto = await Producto.findOneAndUpdate({_id: id}, input, {new: true});
+
+			return producto;
+		},
+		eliminarProducto: async (_, { id } ) => {
+			// Revisar si el producto existe o no
+			let producto = await Producto.findById(id);
+
+			if (!producto) {
+				throw new Error('Producto no encontrado')
+			}
+
+			// Eliminar
+			await Producto.findOneAndDelete({_id: id});
+
+			return "Producto Eliminado";
 		}
 	}
 }
